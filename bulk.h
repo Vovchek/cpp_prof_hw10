@@ -5,7 +5,7 @@
  * @brief command batches processor. Detects bulks and writes them both to cout and files.
  * @author Vladimir Chekal
  * @date April-June 2023
-**/
+ **/
 
 #include <iostream>
 #include <fstream>
@@ -42,7 +42,8 @@ public:
     CommandProcessor() = default;
     CommandProcessor(int N) : max_bulk{N} {}
 
-    ~CommandProcessor() {
+    ~CommandProcessor()
+    {
         std::cout << "~CommandProcessor()\n";
     }
 
@@ -101,7 +102,19 @@ public:
         bulk_size = 0;
     }
 
-    void onInput(const std::string &cmd)
+    void onInput(const std::string &inp)
+    {
+        for (auto start = inp.find_first_not_of("\n\r\0"),
+                  end = inp.find_first_of("\n\r\0", start);
+             start != std::string::npos;
+             start = inp.find_first_not_of("\n\r\0", end),
+                  end = inp.find_first_of("\n\r\0", start))
+        {
+            processCommand(inp.substr(start, end != std::string::npos ? (end - start) : (inp.length() - start)));
+        }
+    }
+
+    void processCommand(const std::string &cmd)
     {
         if (bulk_size < max_bulk || bulk_depth > 0)
         {
