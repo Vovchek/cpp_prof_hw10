@@ -1,11 +1,17 @@
 #pragma once
 
+/**
+ * @file server.h
+ * @brief Provides network server interface to command bulks processor.
+ * @author Christopher M. Kohlhoff (adapted by Vladimir Chekal)
+ * @date June 2023
+ **/
+
 #include <cstdlib>
 #include <iostream>
 #include <memory>
 #include <utility>
 #include <boost/asio.hpp>
-#include <thread>
 
 #include "bulk.h"
 
@@ -30,25 +36,20 @@ private:
     {
         auto self(shared_from_this());
         socket_.async_read_some(boost::asio::buffer(data_, max_length),
-                [this, self, cmd](boost::system::error_code ec, std::size_t length)
+            [this, self, cmd](boost::system::error_code ec, std::size_t length)
+            {
+                if (!ec)
                 {
-                    if (!ec)
-                    {
-                        std::string inp{data_, length};
-                        //std::cout << "session : " << this << std::endl;
-                        for (auto start = inp.find_first_not_of("\n\r\0"),
-                                    end = inp.find_first_of("\n\r\0", start);
-                                start != std::string::npos;
-                                start = inp.find_first_not_of("\n\r\0", end),
-                                    end = inp.find_first_of("\n\r\0", start))
-                        {
-                            cmd->onInput(inp.substr(start, end != std::string::npos ? (end - start) : (inp.length() - start)));
-                        }
-                        do_read(cmd);
-                    } else {
-                        //cmd->terminate();
-                    }
-                });
+                    std::string inp{data_, length};
+                    cmd->onInput(inp);
+
+                    do_read(cmd);
+                }
+                else
+                {
+                    // cmd->terminate();
+                }
+            });
     }
 
     tcp::socket socket_;
@@ -87,8 +88,7 @@ private:
     }
 
     tcp::acceptor acceptor_;
-    std::shared_ptr<OstreamLogger> coutPtr_; // = OstreamLogger::create(&commands);
-    std::shared_ptr<FileLogger> filePtr_;    // = FileLogger::create(&commands);
-public:
+    std::shared_ptr<OstreamLogger> coutPtr_;
+    std::shared_ptr<FileLogger> filePtr_;
     static inline std::unique_ptr<CommandProcessor> pCommands_;
 };
